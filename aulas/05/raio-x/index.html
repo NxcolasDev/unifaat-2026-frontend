@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raio-X do Código — Aula 05</title>
+<link rel="stylesheet" href="../../../assets/raio-x.css">
+<script src="../../../assets/tema.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body>
+
+<nav class="topbar"><a class="back" href="../../../index.html">← Voltar</a></nav>
+
+<header>
+  <span class="kicker">Raio-X do Código · Aula 05 · Timeline</span>
+  <h1>TypeScript, Generics e Pré-Compilação com Vite</h1>
+  <p class="meta">
+    <span><i class="fa-solid fa-folder"></i> src/frontend</span>
+    <span><i class="fa-solid fa-calendar-days"></i> 21/09/2026</span>
+    <span><i class="fa-solid fa-wrench"></i> 8 etapas até agora</span>
+  </p>
+</header>
+
+<main>
+<div class="timeline">
+
+  <!-- ETAPA 1 -->
+  <div class="entry">
+    <div class="entry-dot">1</div>
+    <div class="entry-date">Etapa 1</div>
+    <h2>Observação: o <code class="inline">package.json</code> real mora em <code class="inline">src/</code></h2>
+    <p class="sub">Criamos aliases no <code class="inline">package.json</code> da raiz do repo pra não precisar lembrar de entrar em <code class="inline">src/</code> toda hora.</p>
+
+    <div class="tree">./                          <span class="comment">// raiz do repositório (aulas/, docker/, docker-compose.yml...)</span>
+├── package.json          <span class="new">← NOVO: só aliases, sem dependências próprias</span>
+└── src/
+    └── package.json      <span class="comment">// o package.json "de verdade": deps do backend + frontend</span></div>
+
+    <div class="diff">
+      <div class="diff-head">./package.json (raiz)</div>
+      <div class="line ctx">{</div>
+      <div class="line ctx">  "scripts": {</div>
+      <div class="line ctx">    "web":         "cd src &amp;&amp; node _web.js",</div>
+      <div class="line ctx">    "dev":         "cd src &amp;&amp; npm run dev",</div>
+      <div class="line ctx">    "migrate":     "cd src &amp;&amp; node _command.js migrate",</div>
+      <div class="line ctx">    "seed":        "cd src &amp;&amp; node _command.js seed",</div>
+      <div class="line ctx">    "i":           "npm --prefix src install",</div>
+      <div class="line add">+   "vite:dev":    "cd src &amp;&amp; npx vite",</div>
+      <div class="line add">+   "vite:build":  "cd src &amp;&amp; npx vite build",</div>
+      <div class="line add">+   "vite:watch":  "cd src &amp;&amp; npx vite build --watch",</div>
+      <div class="line add">+   "docker:build":"docker compose build",</div>
+      <div class="line add">+   "docker:up":   "docker compose up -d",</div>
+      <div class="line add">+   "docker:down": "docker compose down"</div>
+      <div class="line ctx">  }</div>
+      <div class="line ctx">}</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que dois package.json</h4>
+        <p>O de <code class="inline">src/</code> é o real: lista <code class="inline">express</code>, <code class="inline">axios</code>, <code class="inline">bootstrap</code>, <code class="inline">vite</code>, <code class="inline">typescript</code> etc — é onde <code class="inline">npm install</code> baixa coisa de verdade. O da raiz não tem <code class="inline">dependencies</code> nenhuma: existe só pra guardar <strong>atalhos</strong> (aliases), porque rodar comandos direto da raiz do projeto (onde também está o <code class="inline">docker-compose.yml</code>) é mais natural do que ficar entrando/saindo de <code class="inline">src/</code>.</p>
+      </div>
+      <div class="why-card">
+        <h4>"cd src &amp;&amp;" em vez de "--prefix"</h4>
+        <p>A opção <code class="inline">npm --prefix src exec vite build</code> parece equivalente, mas <strong>não muda o diretório de trabalho</strong> do comando — só troca de onde o npm busca o binário. Como o <code class="inline">vite.config.js</code> usa caminhos relativos (<code class="inline">root: 'frontend/resources'</code>), rodar com o cwd errado quebra a resolução do <code class="inline">index.html</code>. <code class="inline">cd src &amp;&amp; npx vite build</code> resolve isso rodando o comando de dentro da pasta certa.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p><code class="inline">npm run vite:build</code> (da raiz) → build de produção completo. <code class="inline">npm run docker:build -- nodevitecompiler-container</code> → imagem buildada. Os aliases antigos (<code class="inline">web</code>, <code class="inline">dev</code>, <code class="inline">migrate</code>, <code class="inline">seed</code>, <code class="inline">i</code>) continuam intactos.</p>
+    </div>
+  </div>
+
+  <!-- ETAPA 2 -->
+  <div class="entry">
+    <div class="entry-dot">2</div>
+    <div class="entry-date">Etapa 2</div>
+    <h2>Criando o diretório <code class="inline">resources/</code></h2>
+    <p class="sub">Separar código-fonte (o que escrevemos) do código de saída (o que o navegador recebe).</p>
+
+    <div class="tree">frontend/
+├── public/                  <span class="comment">// antes: tinha TUDO aqui</span>
+│   ├── index.html, login.html, tasks.html
+│   ├── css/app.css           <span class="comment">// ← saiu daqui</span>
+│   └── js/...                 <span class="comment">// ← saiu daqui</span>
+
+           ⬇
+
+frontend/
+├── public/                  <span class="comment">// depois: só o que o Vite GERA</span>
+└── <span class="dir">resources/</span>              <span class="new">← NOVO (fonte)</span>
+    ├── css/app.css
+    └── js/ (api/, listeners/, pages/, render/, utils/)</div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que</h4>
+        <p>O Vite precisa de uma pasta de <strong>origem</strong> diferente da pasta de <strong>destino</strong>. Sem isso, não dá pra saber o que é escrito à mão e o que é gerado automaticamente.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPA 3 -->
+  <div class="entry">
+    <div class="entry-dot">3</div>
+    <div class="entry-date">Etapa 3</div>
+    <h2>Migrando todo o JavaScript para TypeScript</h2>
+    <p class="sub">24 arquivos <code class="inline">.js</code> → <code class="inline">.ts</code>, com tipos e um arquivo central de generics para as respostas de API.</p>
+
+    <h3 class="block-title">Arquivo novo: types/api.ts</h3>
+    <div class="diff">
+      <div class="diff-head">resources/js/types/api.ts</div>
+      <div class="line add">+ export interface User { id: number; name: string; email: string; }</div>
+      <div class="line add">+ export interface Task { id: number; name: string; is_done: boolean; id_user: number; }</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ // Generic: T é o tipo do item da lista (Task, User, ...)</div>
+      <div class="line add">+ export interface PaginatedResponse&lt;T&gt; {</div>
+      <div class="line add">+   data: T[]; page: number; limit: number; total: number;</div>
+      <div class="line add">+ }</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ export type ValidationResult =</div>
+      <div class="line add">+   | { valid: true; data: User }</div>
+      <div class="line add">+   | { valid: false };</div>
+    </div>
+
+    <h3 class="block-title">Antes / depois de uma API típica</h3>
+    <div class="diff">
+      <div class="diff-head">resources/js/api/tasksListApi.ts</div>
+      <div class="line rem">- export async function tasksListApi(idUser, { page = 1, limit = 10 } = {}) {</div>
+      <div class="line rem">-     const { data } = await clientApi.get(`/users/${idUser}/tasks`, { params: { page, limit } });</div>
+      <div class="line rem">-     return data;</div>
+      <div class="line rem">- }</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ export async function tasksListApi(</div>
+      <div class="line add">+   idUser: number,</div>
+      <div class="line add">+   { page = 1, limit = 10 }: PaginationParams = {}</div>
+      <div class="line add">+ ): Promise&lt;PaginatedResponse&lt;Task&gt;&gt; {</div>
+      <div class="line add">+   const { data } = await clientApi.get&lt;PaginatedResponse&lt;Task&gt;&gt;(`/users/${idUser}/tasks`, {</div>
+      <div class="line add">+     params: { page, limit },</div>
+      <div class="line add">+   });</div>
+      <div class="line add">+   return data;</div>
+      <div class="line add">+ }</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que um generic e não um tipo fixo</h4>
+        <p><code class="inline">PaginatedResponse&lt;T&gt;</code> descreve o "formato" comum de qualquer lista paginada do backend (page, limit, total, data). Em vez de criar <code class="inline">TaskListResponse</code>, <code class="inline">UserListResponse</code> etc. repetidos, escrevemos a forma <strong>uma vez</strong> e reaproveitamos trocando só o <code class="inline">T</code>.</p>
+      </div>
+      <div class="why-card">
+        <h4>Generic direto no Axios</h4>
+        <p><code class="inline">clientApi.get&lt;PaginatedResponse&lt;Task&gt;&gt;(...)</code> diz ao TypeScript: "o <code class="inline">.data</code> dessa resposta é desse tipo". A partir daí, autocompletar e checagem de tipos funcionam em toda a cadeia — sem precisar de type assertion manual.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="icon"><i class="fa-solid fa-broom"></i></span>
+      <div>
+        <strong>Cleanup no caminho:</strong>
+        <p>4 arquivos (<code class="inline">createButtonClickHandler.js</code>, <code class="inline">deleteButtonClickHandler.js</code>, <code class="inline">userRender.js</code>, <code class="inline">paginationRender.js</code>) importavam um <code class="inline">listUserRender.js</code> que não existe no projeto e não eram usados por nenhuma página. Código morto e já quebrado antes desta aula — removidos em vez de convertidos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPA 4 -->
+  <div class="entry">
+    <div class="entry-dot">4</div>
+    <div class="entry-date">Etapa 4</div>
+    <h2>Configurando o <code class="inline">vite.config.js</code> como entry point</h2>
+    <p class="sub">De "servidor com HMR" pra "pré-compilador profissional": <code class="inline">resources/</code> → <code class="inline">public/</code>.</p>
+
+    <div class="diff">
+      <div class="diff-head">src/vite.config.js</div>
+      <div class="line rem">- root: (IS_DOCKER == "true") ? 'resources' : 'frontend/public',</div>
+      <div class="line add">+ root: 'frontend/resources',</div>
+      <div class="line ctx">  server: { open: ..., hmr: true, host: true, port: (IS_DOCKER ? 5172 : 5173) },</div>
+      <div class="line add">+ resolve: { alias: { '@fa': '.../@fortawesome/fontawesome-free' } },</div>
+      <div class="line add">+ build: {</div>
+      <div class="line add">+   outDir: '../public',       // frontend/resources/../public = frontend/public</div>
+      <div class="line add">+   emptyOutDir: true,</div>
+      <div class="line add">+   manifest: true,</div>
+      <div class="line add">+   rollupOptions: { input: ["index.html", "login.html", "tasks.html"] }</div>
+      <div class="line add">+ }</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que tirei a bifurcação "docker vs local" do root</h4>
+        <p>A config antiga tinha dois roots diferentes (um pra Docker, outro local) porque <code class="inline">resources/</code> ainda não existia — o modo local caía direto em <code class="inline">frontend/public</code>. Agora que <code class="inline">resources/</code> é a única fonte de verdade, os dois ambientes devem compilar o mesmo código-fonte. Só <strong>porta</strong> e <strong>abrir navegador automaticamente</strong> continuam diferentes por ambiente — isso é o "hmr" que pedimos pra preservar.</p>
+      </div>
+      <div class="why-card">
+        <h4>index.html, login.html e tasks.html também se mudaram</h4>
+        <p>O Vite entra em um projeto pelos arquivos <code class="inline">.html</code> configurados em <code class="inline">root</code>. Como o root virou <code class="inline">frontend/resources</code>, os três HTMLs (e a pasta <code class="inline">img/</code>, <code class="inline">404.html</code>, <code class="inline">example.json</code> como <code class="inline">resources/public/</code>) precisaram ir junto — senão o Vite não encontraria nada pra compilar.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p><code class="inline">tsc --noEmit</code> → 0 erros de tipo. <code class="inline">vite build</code> → build de produção gerando <code class="inline">frontend/public/</code> do zero (78 módulos, HTML + JS + CSS com hash). <code class="inline">frontend/public/</code> agora é 100% gerado, então entrou no <code class="inline">.gitignore</code> — como um <code class="inline">dist/</code>.</p>
+    </div>
+  </div>
+
+  <!-- ETAPA 5 -->
+  <div class="entry">
+    <div class="entry-dot">5</div>
+    <div class="entry-date">Etapa 5</div>
+    <h2>Bootstrap, Axios e FontAwesome: do CDN pro npm</h2>
+    <p class="sub">De tags <code class="inline">&lt;script&gt;</code>/<code class="inline">&lt;link&gt;</code> apontando pra internet, pra dependências instaladas e compiladas pelo Vite — incluindo os ícones.</p>
+
+    <div class="diff">
+      <div class="diff-head">resources/login.html · resources/tasks.html</div>
+      <div class="line rem">- &lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/.../bootstrap.min.css"&gt;</div>
+      <div class="line rem">- &lt;script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"&gt;&lt;/script&gt;</div>
+      <div class="line rem">- &lt;script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/.../bootstrap.bundle.min.js"&gt;&lt;/script&gt;</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ &lt;link rel="stylesheet" href="./css/app.css"&gt;</div>
+      <div class="line add">+ &lt;script type="module" src="./js/app.ts"&gt;&lt;/script&gt;</div>
+    </div>
+
+    <div class="diff">
+      <div class="diff-head">resources/js/app.ts · resources/css/app.css</div>
+      <div class="line add">+ import "bootstrap/dist/js/bootstrap.bundle.min.js";</div>
+      <div class="line add">+ import axios from "axios";</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ @import "bootstrap/dist/css/bootstrap.min.css";       /* topo do app.css */</div>
+      <div class="line add">+ @import "@fortawesome/fontawesome-free/css/all.min.css";</div>
+    </div>
+
+    <h3 class="block-title">FontAwesome entrou pelo mesmo caminho</h3>
+    <div class="diff">
+      <div class="diff-head">terminal — dentro de src/</div>
+      <div class="line ctx">$ npm install @fortawesome/fontawesome-free</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que sair do CDN</h4>
+        <p>No CDN, a versão fica escrita na URL do HTML — fácil de esquecer, difícil de auditar. Pelo <code class="inline">npm install</code>, a versão fica no <code class="inline">package.json</code>, versionada junto do resto do projeto, e o Vite baixa uma vez só (sem requisição externa toda vez que a página carrega).</p>
+      </div>
+      <div class="why-card">
+        <h4>Por que centralizar em app.ts</h4>
+        <p>Bootstrap, Axios e FontAwesome não são código nosso — são "vendor". Colocar os imports num arquivo só (<code class="inline">app.ts</code>/<code class="inline">app.css</code>, carregado em toda página) deixa claro o que é dependência externa vs. o que é lógica da aplicação (que fica em <code class="inline">pages/</code>, <code class="inline">api/</code>, etc).</p>
+      </div>
+      <div class="why-card">
+        <h4>O alias @fa da Etapa 3 finalmente ganhou uso</h4>
+        <p>O <code class="inline">vite.config.js</code> já tinha um alias <code class="inline">'@fa'</code> apontando pra <code class="inline">node_modules/@fortawesome/fontawesome-free</code> desde que criamos o entry point — só não existia o pacote instalado ainda. Agora ele resolve de verdade.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p>Build gerou <code class="inline">checkAuthentication.*.css</code> (agora 316KB → 54KB gzip, Bootstrap + FontAwesome juntos) e 4 arquivos de fonte (<code class="inline">fa-solid</code>, <code class="inline">fa-regular</code>, <code class="inline">fa-brands</code>, <code class="inline">fa-v4compatibility</code>, todos <code class="inline">.woff2</code> com hash). Nenhuma tag de CDN restante em nenhum <code class="inline">.html</code> do app.</p>
+    </div>
+  </div>
+
+  <!-- ETAPA 6 -->
+  <div class="entry">
+    <div class="entry-dot">6</div>
+    <div class="entry-date">Etapa 6</div>
+    <h2>Container Docker do pré-compilador (<code class="inline">vite build --watch</code>)</h2>
+    <p class="sub">Um 3º container além do Nginx e do Node web: fica só compilando <code class="inline">resources/</code> → <code class="inline">public/</code> em background, sem servir nada.</p>
+
+    <div class="tree">docker/
+├── node-web/            <span class="comment">// Express (API)</span>
+├── node-command/        <span class="comment">// comandos avulsos (migration, seed...)</span>
+├── node-vite-hmr/        <span class="comment">// dev server com HMR (porta 5172)</span>
+└── <span class="dir">node24-vite-compiler/</span> <span class="new">← NOVO</span>
+    ├── Dockerfile
+    └── vite.config.js   <span class="comment">// root:'resources' → outDir:'../public'</span></div>
+
+    <h3 class="block-title">Dockerfile</h3>
+    <div class="diff">
+      <div class="diff-head">docker/node24-vite-compiler/Dockerfile</div>
+      <div class="line ctx">FROM node:24</div>
+      <div class="line ctx">WORKDIR /app</div>
+      <div class="line ctx">COPY src/package*.json ./</div>
+      <div class="line ctx">COPY src/frontend/resources/ ./resources/</div>
+      <div class="line ctx">COPY docker/node24-vite-compiler/vite.config.js ./</div>
+      <div class="line ctx">RUN npm install &amp;&amp; npm install -g vite</div>
+      <div class="line add">+ ENTRYPOINT ["vite", "build", "--watch"]</div>
+    </div>
+
+    <h3 class="block-title">docker-compose.yml — 3 mudanças</h3>
+    <div class="diff">
+      <div class="diff-head">docker-compose.yml</div>
+      <div class="line add">+ nodevitecompiler-container:</div>
+      <div class="line add">+   volumes:</div>
+      <div class="line add">+     - public-volume:/app/public</div>
+      <div class="line add">+     - ./src/frontend/resources:/app/resources</div>
+      <div class="line add">+     - nodemodules-volume:/app/node_modules</div>
+      <div class="line add">+   environment: [IS_CONTAINER=TRUE]</div>
+      <div class="line ctx"></div>
+      <div class="line rem">- nodeweb-container: volumes: ./src/frontend/public:/app/frontend/public</div>
+      <div class="line add">+ nodeweb-container: volumes: public-volume:/app/frontend/public</div>
+      <div class="line ctx"></div>
+      <div class="line rem">- nginx-container: volumes: ./src/frontend/public:/var/www</div>
+      <div class="line add">+ nginx-container: volumes: public-volume:/var/www</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que um vite.config.js separado pra esse container</h4>
+        <p>O <code class="inline">vite.config.js</code> principal (usado no HMR local) tem <code class="inline">root: 'frontend/resources'</code>, porque lá backend e frontend dividem o mesmo <code class="inline">src/</code>. Dentro desse container, porém, o Dockerfile copia <code class="inline">resources/</code> direto pra <code class="inline">/app/resources</code> — sem o prefixo <code class="inline">frontend/</code>. Por isso o config daqui usa <code class="inline">root: 'resources'</code>, batendo com os binds <code class="inline">/app/resources</code> e <code class="inline">/app/public</code>.</p>
+      </div>
+      <div class="why-card">
+        <h4>Por que public virou um volume Docker (não mais bind do host)</h4>
+        <p>Como <code class="inline">public/</code> agora é 100% gerado (e já está no <code class="inline">.gitignore</code>), não precisa mais existir como pasta real no host. Um <strong>named volume</strong> (<code class="inline">public-volume</code>) guarda esse output só dentro do Docker, e os 3 containers que precisam dele (compilador que escreve, Nginx e Node web que leem) montam o mesmo volume — sem duplicar arquivo em disco.</p>
+      </div>
+      <div class="why-card">
+        <h4>Por que node_modules continua compartilhado</h4>
+        <p>Os outros 3 containers Node (web, command, vite-hmr) já dividem <code class="inline">nodemodules-volume</code> porque todos instalam a partir do <strong>mesmo</strong> <code class="inline">src/package.json</code> (backend e frontend juntos). O compilador entra nesse mesmo esquema — não precisa de um volume próprio.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p><code class="inline">docker compose build nodevitecompiler-container</code> → build limpo. <code class="inline">docker compose up -d</code> → log mostrou <code class="inline">watching for file changes...</code>, build inicial rodou (78 módulos) e escreveu em <code class="inline">/app/public</code> dentro do volume. Container parado depois do teste.</p>
+    </div>
+  </div>
+
+  <!-- ETAPA 7 -->
+  <div class="entry">
+    <div class="entry-dot">7</div>
+    <div class="entry-date">Etapa 7</div>
+    <h2>Os HTMLs apontam pra <code class="inline">.ts</code> direto — o Vite resolve isso no build</h2>
+    <p class="sub">O navegador nunca vê a palavra <code class="inline">.ts</code>. Quem escreve <code class="inline">.ts</code> nos scripts somos nós; quem entrega <code class="inline">.js</code> pro navegador é o pré-compilador.</p>
+
+    <h3 class="block-title">Fonte: resources/login.html</h3>
+    <div class="diff">
+      <div class="diff-head">resources/login.html (o que a gente escreve)</div>
+      <div class="line ctx">&lt;link rel="icon" type="image/png" href="./img/favicon.ico"&gt;</div>
+      <div class="line ctx">&lt;link rel="stylesheet" href="./css/app.css"&gt;</div>
+      <div class="line add">+ &lt;script type="module" src="./js/app.ts"&gt;&lt;/script&gt;</div>
+      <div class="line add">+ &lt;script type="module" src="./js/pages/login.ts"&gt;&lt;/script&gt;</div>
+    </div>
+
+    <h3 class="block-title">Saída: public/login.html (depois do build)</h3>
+    <div class="diff">
+      <div class="diff-head">public/login.html (o que o navegador recebe)</div>
+      <div class="line ctx">&lt;link rel="icon" type="image/png" href="./img/favicon.ico"&gt;</div>
+      <div class="line add">+ &lt;script type="module" crossorigin src="/src/login.CaImtk-5.js"&gt;&lt;/script&gt;</div>
+      <div class="line add">+ &lt;link rel="modulepreload" crossorigin href="/src/checkAuthentication.DoW8m8Fp.js"&gt;</div>
+      <div class="line add">+ &lt;link rel="stylesheet" crossorigin href="/src/checkAuthentication.BqMNcqKe.css"&gt;</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que dá pra escrever ".ts" dentro de um &lt;script&gt;</h4>
+        <p>O navegador não entende <code class="inline">.ts</code> (ver Etapa 2 e a Seção 2 do README da aula). O truque é que quem serve esse HTML nunca é o arquivo cru — é sempre o <strong>Vite</strong>: no dev (HMR) ele intercepta a requisição e compila na hora; no build, ele reescreve o próprio HTML, trocando cada <code class="inline">src="./js/....ts"</code> pelo caminho do bundle <code class="inline">.js</code> final, com hash.</p>
+      </div>
+      <div class="why-card">
+        <h4>De onde vem o hash no nome do arquivo</h4>
+        <p><code class="inline">login.CaImtk-5.js</code> — o hash muda toda vez que o conteúdo muda. Isso permite cache "forte" no navegador (o arquivo pode ficar guardado por anos), porque se o código mudar, o nome do arquivo muda junto e o navegador é obrigado a buscar de novo.</p>
+      </div>
+      <div class="why-card">
+        <h4>modulepreload e o CSS "vazando" pro JS</h4>
+        <p>O <code class="inline">checkAuthentication.*.css</code> e o <code class="inline">checkAuthentication.*.js</code> aparecem porque <code class="inline">app.ts</code> (Bootstrap+Axios) e várias funções de API são código compartilhado entre <code class="inline">login.ts</code> e <code class="inline">tasks.ts</code> — o Vite extrai isso num "chunk" comum em vez de duplicar em cada página.</p>
+      </div>
+      <div class="why-card">
+        <h4>Não é só .ts — as imagens também passam pelo pré-compilador</h4>
+        <p><code class="inline">favicon.ico</code> e <code class="inline">squirtle.png</code> ficam em <code class="inline">resources/public/img/</code> (a pasta especial que o Vite copia sem processar) e saem em <code class="inline">public/img/</code> depois do build, junto com o <code class="inline">.vite/manifest.json</code>. A referência <code class="inline">href="./img/favicon.ico"</code> não muda de um lado pro outro — o Vite só garante que o arquivo exista no destino certo.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p>Rodei <code class="inline">vite build</code> de novo e li o <code class="inline">public/login.html</code> gerado: confirma que o <code class="inline">./js/app.ts</code> e o <code class="inline">./js/pages/login.ts</code> viraram um único <code class="inline">&lt;script&gt;</code> apontando pro bundle final — nenhuma referência a <code class="inline">.ts</code> sobra no HTML entregue ao navegador. <code class="inline">public/img/favicon.ico</code> e <code class="inline">public/img/squirtle.png</code> saíram junto no mesmo build.</p>
+    </div>
+  </div>
+
+  <!-- ETAPA 8 -->
+  <div class="entry">
+    <div class="entry-dot">8</div>
+    <div class="entry-date">Etapa 8</div>
+    <h2>API Contextual de Tasks — a API antiga continua viva</h2>
+    <p class="sub">Um diretório novo de controllers, <code class="inline">TaskViewContextApi/</code>, do lado do <code class="inline">TaskApi/</code> já existente — sem apagar nada.</p>
+
+    <div class="tree">backend/app/Http/Controllers/
+├── TaskApi/                  <span class="comment">// intacta — idUser vem da URL</span>
+│   ├── ListTaskController.js
+│   ├── GetTaskController.js
+│   ├── CreateTaskController.js
+│   ├── UpdateTaskController.js
+│   └── DeleteTaskController.js
+│
+└── <span class="dir">TaskViewContextApi/</span>          <span class="new">← NOVO — idUser vem do JWT</span>
+    ├── <span class="new">ListTaskController.js</span>
+    ├── <span class="new">GetTaskController.js</span>
+    ├── <span class="new">CreateTaskController.js</span>
+    ├── <span class="new">UpdateTaskController.js</span>
+    └── <span class="new">DeleteTaskController.js</span></div>
+
+    <h3 class="block-title">Antes / depois de um controller</h3>
+    <div class="diff">
+      <div class="diff-head">GetTaskController.js — TaskApi (original) → TaskViewContextApi (novo)</div>
+      <div class="line rem">- export default async function GetTaskController(request, response) {</div>
+      <div class="line rem">-   const { idUser, id } = request.params;</div>
+      <div class="line rem">-</div>
+      <div class="line rem">-   // Verifica se o usuário existe</div>
+      <div class="line rem">-   const user = await UserModel.findByPk(idUser);</div>
+      <div class="line rem">-   if (!user) { return response.status(404).json({ error: "User not found" }); }</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ export default async function GetTaskController(request, response) {</div>
+      <div class="line add">+   const idUser = request.user.id;   // veio do JWT, decodificado pelo middleware</div>
+      <div class="line add">+   const { id } = request.params;    // só o id da task continua na URL</div>
+    </div>
+
+    <h3 class="block-title">Rotas novas em router.js</h3>
+    <div class="diff">
+      <div class="diff-head">backend/routes/router.js</div>
+      <div class="line ctx">router.use("/users/:idUser/tasks", taskRouter);              <span class="comment">// continua existindo</span></div>
+      <div class="line add">+ router.use("/me/tasks", AuthTokenMiddleware, taskContextRouter);</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que não apagar a API antiga</h4>
+        <p><code class="inline">/users/:idUser/tasks</code> ainda faz sentido pra um admin listar tarefas de qualquer usuário (uso que exige saber o ID de outra pessoa). <code class="inline">/me/tasks</code> é pro caso comum: o próprio usuário logado mexendo nas próprias tarefas. São dois casos de uso diferentes, não uma versão "certa" substituindo a "errada".</p>
+      </div>
+      <div class="why-card">
+        <h4>Onde entra o AuthTokenMiddleware</h4>
+        <p>Ele roda <strong>antes</strong> de qualquer controller de <code class="inline">/me/tasks</code>, decodifica o JWT (do cookie ou do header) e guarda o resultado em <code class="inline">request.user</code>. Se o token não existir ou for inválido, a requisição nem chega no controller — já leva 401.</p>
+      </div>
+      <div class="why-card">
+        <h4>O que sai do controller</h4>
+        <p>Como o <code class="inline">idUser</code> não vem mais da URL, o bloco "verifica se o usuário existe" (que existia pra prevenir um <code class="inline">idUser</code> forjado) deixa de fazer sentido — o middleware já garantiu que o token é válido. O controller fica mais curto e só cuida da regra de negócio da task.</p>
+      </div>
+    </div>
+
+    <div class="ok">
+      <strong><i class="fa-solid fa-circle-check"></i> Testado:</strong>
+      <p><code class="inline">node --check</code> em todos os arquivos novos → sem erro de sintaxe. <code class="inline">node _web.js</code> subiu sem quebrar no import/wiring das novas rotas.</p>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  Aula 05 — Pré Compiladores e Typescript · Frontend 2026.2 · Raio-X do Código (timeline viva — novas etapas entram aqui embaixo)
+</footer>
+
+<script src="../../../assets/raio-x.js"></script>
+</body>
+</html>

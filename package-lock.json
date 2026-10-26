@@ -1,0 +1,12 @@
+{
+  "name": "unifaat-2026-frontend",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "unifaat-2026-frontend",
+      "version": "1.0.0"
+    }
+  }
+}

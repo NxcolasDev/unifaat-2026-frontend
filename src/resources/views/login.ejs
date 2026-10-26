@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Tasks</title>
+  <link rel="icon" type="image/png" href="/img/favicon.ico">
+  <%- vite(["css/app.css", "js/app.ts", "js/pages/login.tsx"]) %>
+</head>
+
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+  <header class="bg-primary text-white text-center py-4 shadow-sm">
+    <h1 class="h3 m-0">Tasks - Login</h1>
+  </header>
+
+  <main class="container flex-grow-1 d-flex align-items-center justify-content-center py-5">
+    <div id="login-container" class="card shadow-sm p-5" style="max-width: 400px; width: 100%;">
+
+      <%# O formulário agora é um componente React (LoginForm), montado dentro do #root %>
+      <div id="root"></div>
+
+    </div>
+  </main>
+
+  <%- include('partials/footer') %>
+
+</body>
+
+</html>

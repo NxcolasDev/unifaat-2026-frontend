@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aula 05 — Pré Compiladores e Typescript</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="../../../assets/slide.css">
+<link rel="stylesheet" href="../../../assets/slide-16x9.css">
+<script src="../../../assets/tema.js"></script>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar" aria-label="Miniaturas dos slides">
+  <a class="sidebar-back" href="../../../index.html">← Voltar</a>
+</aside>
+
+<div class="deck" id="deck">
+
+  <section class="slide" data-eyebrow="abertura">
+    <p class="eyebrow">Frontend · Bimestre 02</p>
+    <h1>Pré Compiladores<br>e Typescript</h1>
+    <p class="lede">Aula 05. Código type-safe reutilizável, pré compiladores como entry points, e eliminação de redundância no backend.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="contexto">
+    <h2>De onde chegamos até aqui</h2>
+    <p class="body-text">Frontend começou como HTML + JS soltos. Evoluiu para Vite com HMR. Agora: abandona JS puro e abraça TypeScript (.ts). Estrutura clara: <code>resources/</code> (fonte) → Vite compila → <code>public/</code> (JS puro para navegador).</p>
+    <p class="body-text">O Vite passa a ser um pré compilador profissional: minifica, bundla, otimiza. Dois modos: <code>npm run dev</code> (watcher, desenvolvimento) e <code>npm run build</code> (build final, produção).</p>
+    <p class="payoff">Tipos são essenciais para escalar e organizar. Generics para reutilizar sem perder type-safety.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="vendor api">
+    <h2>O Navegador Só Entende JavaScript Puro</h2>
+    <p class="body-text">O navegador só fala uma língua: JavaScript puro. Tudo que fazemos (DOM, eventos, requisições) vem da Vendor API:</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-path">console.js</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="cmd">window.document</span>  <span class="comment">// Vendor API: DOM</span></div>
+        <div class="term-line"><span class="cmd">window.fetch</span>  <span class="comment">// Vendor API: HTTP</span></div>
+        <div class="term-line"><span class="cmd">window.localStorage</span>  <span class="comment">// Vendor API: Storage</span></div>
+      </div>
+    </div>
+    <p class="payoff">TypeScript? Sass? O navegador não entende. Precisa ser transpilado para JS puro primeiro.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="o problema">
+    <h2>O Problema: Formatos que o Navegador Não Entende</h2>
+    <p class="body-text">Se você enviar esses formatos direto para o navegador:</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-path">erro.ts</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="accent-ink">// arquivo: calcular.ts</span></div>
+        <div class="term-line">function calcular(valor: <span class="hl">number</span>): number { }</div>
+        <div class="term-line"><span class="comment">// ✗ SyntaxError: Unexpected token ':'</span></div>
+      </div>
+    </div>
+    <p class="payoff">O navegador rejeita TypeScript. Precisa ser transpilado para JS puro antes.</p>
+  </section>
+
+
+  <section class="slide" data-eyebrow="typescript">
+    <h2>TypeScript: Descobrir Erros Antes de Enviar</h2>
+    <p class="body-text">TypeScript adiciona tipagem. Um arquivo .ts é <strong>transpilado</strong> para .js puro. Erros descobertos sem rodar o código.</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-path">calcular.ts</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="cmd">function calcular(valor: <span class="hl">number</span>) { }</span></div>
+        <div class="term-line"><span class="prompt">→</span> <span class="cmd">calcular("hello")</span>  <span class="comment">// ✗ Erro em transpilação</span></div>
+        <div class="term-line"></div>
+        <div class="term-line out">↓ (transpilado para)</div>
+        <div class="term-line"></div>
+        <div class="term-line"><span class="accent-ink">// calcular.js</span></div>
+        <div class="term-line"><span class="cmd">function calcular(valor) { }</span></div>
+      </div>
+    </div>
+    <p class="payoff">Transpilação invisível: erros descobertos antes de enviar.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="generics">
+    <h2>Generics: Uma Função para Infinitos Tipos</h2>
+    <p class="body-text">Sem generics, duplica função para cada tipo. Generics com <code>&lt;T&gt;</code> resolvem:</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-path">generics.ts</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="cmd">function wrap&lt;T&gt;(v: T): T { return v; }</span></div>
+        <div class="term-line"><span class="prompt">→</span> <span class="cmd">wrap("hello")</span>  <span class="comment">// T = string</span></div>
+        <div class="term-line"></div>
+        <div class="term-line"><span class="cmd">async function userListApi(): Promise&lt;Usuario[]&gt; {</span></div>
+        <div class="term-line">  const r = await clientApi.<span class="hl">get&lt;Usuario[]&gt;</span>("/users");</div>
+        <div class="term-line">}</div>
+      </div>
+    </div>
+    <p class="payoff">Uma função, infinitos tipos, type-safe.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="pre-compilador">
+    <h2>Pré Compiladores: TypeScript → JavaScript</h2>
+    <p class="body-text">Um pré compilador transforma código em linguagem expressiva em código que o navegador entenda:</p>
+    <ul class="points">
+      <li><strong>TypeScript</strong> → JavaScript</li>
+      <li><strong>Sass/LESS</strong> → CSS</li>
+      <li><strong>JSX</strong> → JavaScript</li>
+    </ul>
+    <p class="lede" style="margin-top: 1.5em;">O navegador não entende TypeScript. Antes de enviar para produção (ou de servir ao desenvolvedor), precisa compilar.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="estrutura">
+    <h2>Estrutura: resources/ → public/</h2>
+    <p class="body-text">Novo padrão: arquivos .ts, assets em <code>resources/</code> (origem). Vite compila para <code>public/</code> (JS puro).</p>
+    <div class="tree">
+resources/<br>
+  ├─ App.ts<br>
+  ├─ api.ts<br>
+  └─ index.html<br>
+<br>
+<span class="dim">↓ npm run dev (watcher) ou npm run build (pontual)</span><br>
+<br>
+public/<br>
+  ├─ App.a1b2c3.js  <span class="comment">(minificado)</span><br>
+  └─ api.x9y8z7.js  <span class="comment">(minificado)</span>
+    </div>
+  </section>
+
+  <section class="slide" data-eyebrow="minificacao · bundling">
+    <h2>Minificação e Bundling</h2>
+    <ul class="points">
+      <li><strong>Minificação</strong> — remove espaços, comentários, renomeia variáveis; 50KB → 15KB</li>
+      <li><strong>Bundling</strong> — agrupa múltiplos .js em poucos bundles; 50 requisições → 2-3</li>
+    </ul>
+    <p class="body-text" style="margin-top: 1.5em;"><code>npm run dev</code>: sem minificação (debug legível). <code>npm run build</code>: tudo otimizado.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="watcher">
+    <h2>Watcher: npm run dev vs npm run build</h2>
+    <p class="body-text"><strong>Watcher</strong> é um "observador" que fica escutando mudanças:</p>
+    <div class="tree">
+<span class="hl">npm run dev</span>: inicia watcher
+  → Vite observa resources/
+  → Você salva App.ts
+  → Vite recompila
+  → HMR notifica navegador
+  → Recarrega módulo
+<br>
+<span class="hl">npm run build</span>: compilação pontual
+  → Lê tudo, minifica, bundla
+  → Popula public/, termina
+    </div>
+    <p class="payoff">Watcher economiza tempo: não precisa build manual a cada mudança.</p>
+  </section>
+
+
+  <section class="slide" data-eyebrow="vite · duas serventias">
+    <h2>Vite: Duas Serventias (HMR + Pré Compilação)</h2>
+    <ul class="points">
+      <li><strong>HMR</strong> — alterações refletidas instantaneamente (conforto)</li>
+      <li><strong>Pré Compilação</strong> — <strong>a verdadeira potência</strong>: TypeScript → JS puro automaticamente</li>
+    </ul>
+    <div class="tree">
+<span class="accent-ink">App.ts</span> → <span class="hl">Vite transpila</span> → <span class="accent-ink">App.js</span> → navegador
+<span class="comment">Invisível: salva, já vê atualizado via HMR</span>
+    </div>
+    <p class="payoff">Sem Vite: build manual antes de deploy. Com Vite: invisível e confiável.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="node_modules">
+    <h2>Do node_modules para o Navegador</h2>
+    <p class="body-text"><strong>Antes:</strong> Axios, Bootstrap, fontes → CDN da internet → carregadas direto no HTML</p>
+    <p class="body-text"><strong>Agora:</strong> Tudo em node_modules/ → Vite compila → um bundle único → navegador</p>
+    <div class="tree">
+npm install axios bootstrap<br>
+<br>
+<span class="accent-ink">// App.ts</span><br>
+import axios from 'axios'<br>
+import 'bootstrap/css/bootstrap.css'<br>
+<br>
+↓ (Vite compila tudo junto)<br>
+<br>
+navegador recebe: App.js + CSS + tudo otimizado
+    </div>
+    <p class="payoff">Versionamento explícito, tudo compilado, zero CDN externo.</p>
+  </section>
+
+
+  <section class="slide" data-eyebrow="entry point · docker">
+    <h2>Vite: Entry Point Containerizável</h2>
+    <p class="body-text">O vite.config.js já está preparado para Docker (porta 5173, separado do backend):</p>
+    <div class="tree" style="font-size: 0.8em; line-height: 1.5;">
+      root: <span class="accent-ink">'resources'</span>  <span class="comment">// entrada aqui</span><br>
+      server.host: <span class="accent-ink">true</span>  <span class="comment">// 0.0.0.0 (Docker-ready)</span><br>
+      server.port: <span class="accent-ink">5173</span>  <span class="comment">// porta isolada</span><br>
+      IS_CONTAINER !== "TRUE" → não abre browser em Docker
+    </div>
+    <p class="payoff">Cada entry point (Vite, backend, DB) em seu próprio container → separação, escalabilidade.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="api-contextual · problema">
+    <h2>API Contextual: O Problema da Redundância</h2>
+    <p class="body-text">Hoje, passamos IDs na URL:</p>
+    <div class="term" style="font-size: 0.9em;">
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-path">apis.js</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="cmd">DELETE /users/42</span>  <span class="comment">// ID na URL</span></div>
+        <div class="term-line comment">// Mas o JWT já diz quem é!</div>
+        <div class="term-line"><span class="cmd">PUT /users/7/tasks/100</span>  <span class="comment">// ID do usuário na URL</span></div>
+      </div>
+    </div>
+    <p class="payoff">Redundância perigosa: o backend precisa verificar se ID na URL bate com JWT. Muitos pontos de falha.</p>
+  </section>
+
+  <section class="slide" data-eyebrow="api-contextual">
+    <h2>API Contextual: ID vem do Token</h2>
+    <p class="body-text"><strong>Antes</strong>: DELETE /users/42 (JWT id=7). <strong>Depois</strong>: DELETE /users/me (uma fonte de verdade).</p>
+    <div class="tree">
+<span class="comment">// Refatoração do projeto:</span>
+
+userDeleteApi(): DELETE <span class="hl">/users/me</span>
+taskUpdateApi(taskId): PUT <span class="hl">/me/tasks/{taskId}</span>
+userListApi(): GET <span class="hl">/me</span>
+    </div>
+    <p class="payoff">Menos parâmetros, menos verificações, mais seguro.</p>
+  </section>
+
+
+
+  <section class="slide" data-eyebrow="resumo">
+    <h2>Resumo: Quatro Eixos Essenciais</h2>
+    <ul class="points">
+      <li><strong>Vendor API + Transpilação</strong> — navegador (e Node) só entendem JS puro</li>
+      <li><strong>TypeScript + Generics</strong> — tipos essenciais para escalar; reutilização sem perder type-safety</li>
+      <li><strong>Vite: Pré Compilação + Watcher</strong> — TS → JS invisível; npm run dev (continuo) vs npm run build (pontual)</li>
+      <li><strong>API Contextual</strong> — contexto do JWT, não da URL; segurança, clareza, escalabilidade</li>
+    </ul>
+    <p class="body-text" style="margin-top: 2em;">Próximos: pasta <code>resources</code>, JS → TS, APIs para contextual. Tipos são a base para código que escala.</p>
+  </section>
+
+</div>
+
+<nav class="hud">
+  <button id="prevBtn" aria-label="Slide anterior">‹</button>
+  <div class="hud-mid">
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="hud-meta">
+      <span><span id="counterCurrent">01</span> / <span id="counterTotal">15</span> — <span id="eyebrowLabel">abertura</span></span>
+      <span class="hint">use ← → ou espaço para navegar · T alterna o tema</span>
+    </div>
+  </div>
+  <button id="nextBtn" aria-label="Próximo slide">›</button>
+</nav>
+<script src="../../../assets/slide.js"></script>
+<script src="../../../assets/slide-16x9.js"></script>
+</body>
+</html>

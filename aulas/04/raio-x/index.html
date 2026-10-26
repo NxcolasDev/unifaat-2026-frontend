@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raio-X do Código — Aula 04</title>
+<link rel="stylesheet" href="../../../assets/raio-x.css">
+<script src="../../../assets/tema.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body>
+
+<nav class="topbar"><a class="back" href="../../../index.html">← Voltar</a></nav>
+
+<header>
+  <span class="kicker">Raio-X do Código · Aula 04 · Timeline</span>
+  <h1>Navegadores Web e API</h1>
+  <p class="meta">
+    <span><i class="fa-solid fa-folder"></i> src/backend</span>
+    <span><i class="fa-solid fa-calendar-days"></i> 14/09/2026</span>
+    <span><i class="fa-solid fa-wrench"></i> 3 etapas · reconstruído do commit 3234d80</span>
+  </p>
+</header>
+
+<main>
+<div class="timeline">
+
+  <!-- ETAPA 1 -->
+  <div class="entry">
+    <div class="entry-dot">1</div>
+    <div class="entry-date">Etapa 1</div>
+    <h2>O backend inteiro, do zero</h2>
+    <p class="sub">Antes de mexer em UPDATE/DELETE, a base: Express, Sequelize, Postgres, rotas, controllers, middlewares.</p>
+
+    <div class="tree">backend/
+├── app/
+│   ├── Commands/                 <span class="comment">// migrate e seed via linha de comando</span>
+│   │   ├── MigrationCommand.js
+│   │   └── SeedCommand.js
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── LoginController.js
+│   │   │   ├── UserApi/          <span class="comment">// List, Get, Create, Update, Delete, GetCurrent</span>
+│   │   │   └── TaskApi/          <span class="comment">// List, Get, Create, Update, Delete</span>
+│   │   ├── Middlewares/
+│   │   │   ├── AuthMiddleware.js       <span class="comment">// JWT via header Authorization</span>
+│   │   │   ├── AuthTokenMiddleware.js  <span class="comment">// JWT via cookie OU header</span>
+│   │   │   ├── CorsMiddleware.js
+│   │   │   ├── ParseCookiesMiddleware.js
+│   │   │   └── VerifyImageMiddleware.js
+│   │   └── SwaggerDoc.js
+│   └── Models/
+│       ├── UserModel.js
+│       └── TaskModel.js
+├── bootstrap/
+│   ├── app.js                    <span class="comment">// cria a instância do Express</span>
+│   └── config.js                 <span class="comment">// lê variáveis de ambiente</span>
+├── database/
+│   ├── connections/ (postgres.js, sequelize.js)
+│   ├── relations.js              <span class="comment">// User hasMany Task</span>
+│   └── seeds/
+├── routes/
+│   ├── router.js                 <span class="comment">// junta tudo: middlewares + rotas</span>
+│   └── apis/ (userRouter.js, taskRouter.js)
+└── utils/
+
+src/_web.js       <span class="comment">// entrypoint: sobe o servidor Express</span>
+src/_command.js   <span class="comment">// entrypoint: roda migrate/seed via CLI</span></div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que essa organização (e não tudo num arquivo só)</h4>
+        <p>Separar <code class="inline">Controllers</code> (o que cada rota faz), <code class="inline">Models</code> (o que é um Usuário/Tarefa no banco), <code class="inline">Middlewares</code> (o que roda antes de toda rota, tipo autenticação) e <code class="inline">routes</code> (o "mapa" de URLs) é o padrão MVC simplificado. Cada arquivo tem uma responsabilidade só — quando algo quebra, o nome da pasta já diz onde procurar.</p>
+      </div>
+      <div class="why-card">
+        <h4>Dois entrypoints, dois propósitos</h4>
+        <p><code class="inline">_web.js</code> sobe o servidor (fica rodando, escutando requisições). <code class="inline">_command.js</code> roda um comando e termina (migrate, seed). Misturar os dois num arquivo só faria o "rodar uma migration" depender de subir o servidor inteiro à toa.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPA 2 -->
+  <div class="entry">
+    <div class="entry-dot">2</div>
+    <div class="entry-date">Etapa 2</div>
+    <h2>Instalando o JWT: <code class="inline">jsonwebtoken</code> + <code class="inline">bcrypt</code></h2>
+    <p class="sub">Duas libs via npm — uma pra gerar/validar o token, outra pra nunca guardar senha em texto puro.</p>
+
+    <div class="diff">
+      <div class="diff-head">terminal — dentro de src/</div>
+      <div class="line ctx">$ npm install jsonwebtoken bcrypt</div>
+    </div>
+
+    <div class="diff">
+      <div class="diff-head">src/package.json</div>
+      <div class="line add">+ "bcrypt": "^6.0.0",</div>
+      <div class="line add">+ "jsonwebtoken": "^9.0.3",</div>
+    </div>
+
+    <h3 class="block-title">Onde o JWT é gerado</h3>
+    <div class="diff">
+      <div class="diff-head">backend/app/Http/Controllers/LoginController.js</div>
+      <div class="line ctx">const isPasswordValid = await bcrypt.compare(password, user.password);</div>
+      <div class="line ctx">if (!isPasswordValid) { return response.status(401)...; }</div>
+      <div class="line ctx"></div>
+      <div class="line add">+ const token = jwt.sign(</div>
+      <div class="line add">+   { id: user.id },</div>
+      <div class="line add">+   process.env.JWT_SECRET,</div>
+      <div class="line add">+   { expiresIn: "10m" }</div>
+      <div class="line add">+ );</div>
+      <div class="line add">+</div>
+      <div class="line add">+ response.cookie("auth_token", token, {</div>
+      <div class="line add">+   httpOnly: true,</div>
+      <div class="line add">+   sameSite: "lax",</div>
+      <div class="line add">+   maxAge: 10 * 60 * 1000</div>
+      <div class="line add">+ });</div>
+    </div>
+
+    <h3 class="block-title">Onde o JWT é validado</h3>
+    <div class="diff">
+      <div class="diff-head">backend/app/Http/Middlewares/AuthMiddleware.js e AuthTokenMiddleware.js</div>
+      <div class="line ctx">const decoded = jwt.verify(token, process.env.JWT_SECRET);</div>
+      <div class="line ctx">request.user = decoded;   // fica disponível pros controllers</div>
+      <div class="line ctx">next();</div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que bcrypt e não guardar a senha direto</h4>
+        <p><code class="inline">bcrypt.compare</code> nunca "descriptografa" a senha salva — ele recria o hash da senha digitada e compara os hashes. Isso significa que, mesmo se o banco vazar, ninguém recupera a senha original a partir do que está guardado.</p>
+      </div>
+      <div class="why-card">
+        <h4>Por que o cookie é <code class="inline">httpOnly</code></h4>
+        <p>Um cookie <code class="inline">httpOnly</code> não pode ser lido por JavaScript no navegador (<code class="inline">document.cookie</code> não mostra ele). Isso bloqueia um ataque comum: um script malicioso injetado na página tentando roubar o token.</p>
+      </div>
+      <div class="why-card">
+        <h4>Dois middlewares de JWT, um motivo</h4>
+        <p><code class="inline">AuthMiddleware.js</code> só aceita o token no header <code class="inline">Authorization: Bearer</code> (útil pra testar a API direto, ex: Postman/Swagger). <code class="inline">AuthTokenMiddleware.js</code> aceita cookie OU header — é o que o frontend usa de verdade, já que o navegador manda o cookie sozinho em toda requisição.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETAPA 3 -->
+  <div class="entry">
+    <div class="entry-dot">3</div>
+    <div class="entry-date">Etapa 3</div>
+    <h2>Como organizei o login no frontend</h2>
+    <p class="sub">Três arquivos, cada um com uma responsabilidade — mas montando a tela na mão, no JavaScript.</p>
+
+    <div class="tree">js/pages/login.js        <span class="comment">// decide: já autenticado? manda pra /tasks. senão, chama os dois abaixo</span>
+js/render/loginRender.js <span class="comment">// cria o &lt;form&gt; inteiro via document.createElement(...)</span>
+js/listeners/loginListeners.js <span class="comment">// escuta o submit, chama a API, trata erro</span></div>
+
+    <div class="diff">
+      <div class="diff-head">js/render/loginRender.js — como o form nasce</div>
+      <div class="line ctx">const formElement = document.createElement("form");</div>
+      <div class="line ctx">const emailInputElement = document.createElement("input");</div>
+      <div class="line ctx">emailInputElement.type = "email";</div>
+      <div class="line ctx">emailInputElement.classList.add("form-control");</div>
+      <div class="line ctx">...</div>
+      <div class="line ctx">formElement.append(titleElement, emailLabelElement, emailInputElement, ...);</div>
+      <div class="line ctx">container.append(formElement);</div>
+    </div>
+
+    <div class="callout">
+      <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div>
+        <strong>Isso é um jeito ruim de fazer — e de propósito, por enquanto.</strong>
+        <p>Montar uma tela inteira chamando <code class="inline">document.createElement</code> várias vezes é verboso, difícil de ler e fácil de errar (esquecer um <code class="inline">.append</code>, uma classe, um id). O jeito certo seria escrever o HTML como <strong>template</strong> e só plugar os dados nele — isso é o conceito de <strong>view</strong>. Ainda não vimos views nessa disciplina, então por ora o login é montado assim, "na unha", só pra já ter uma tela funcionando. Isso muda quando chegarmos nesse assunto.</p>
+      </div>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <h4>Por que separar render / listeners / pages mesmo sendo "temporário"</h4>
+        <p>Mesmo sem view "de verdade" ainda, já vale separar <strong>o que desenha</strong> (render) de <strong>o que reage a evento</strong> (listeners) de <strong>o que orquestra a página</strong> (pages). Quando views entrarem, só o <code class="inline">render</code> muda — <code class="inline">listeners</code> e <code class="inline">pages</code> continuam do mesmo jeito.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  Aula 04 — Navegadores Web e API · Frontend 2026.2 · Raio-X do Código
+  <br><i class="fa-solid fa-triangle-exclamation"></i> Reconstruído a partir do commit <code class="inline">3234d80</code> (commit inicial do repositório) —
+  sem diff "antes/depois" real, já que esse foi o primeiro commit. O conteúdo reflete o estado do
+  código naquele momento.
+</footer>
+
+<script src="../../../assets/raio-x.js"></script>
+</body>
+</html>

@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aula 04 — Navegadores Web e API</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../../../assets/slide.css">
+<link rel="stylesheet" href="../../../assets/slide-16x9.css">
+<script src="../../../assets/tema.js"></script>
 </head>
 <body>
+
+<aside class="sidebar" id="sidebar" aria-label="Miniaturas dos slides">
+  <a class="sidebar-back" href="../../../index.html">← Voltar</a>
+</aside>
 
 <div class="deck" id="deck">
 
@@ -153,20 +159,18 @@
 
   <section class="slide" data-eyebrow="cookies · no axios">
     <h2>Cookies no frontend — Axios envia automático</h2>
-    <p class="body-text"><strong>Mesmo domínio (localhost:3000)</strong> — navegador já envia o cookie automaticamente:</p>
+    <p class="body-text">Frontend em localhost:5173. <strong>Mesmo domínio (localhost:3000)</strong> — navegador já envia o cookie automaticamente:</p>
     <div class="tree" style="font-size: 1em;">
-      <span class="comment">// Frontend em localhost:5173</span><br>
       <span class="comment">// Requisição pra localhost:3000</span><br>
-      axios.<span class="hl">post</span>(<span class="accent-ink">"http://localhost:3000/usuarios"</span>, { nome: <span class="accent-ink">"Ana"</span> });<br><br>
+      axios.<span class="hl">post</span>(<span class="accent-ink">"http://localhost:3000/usuarios"</span>, { nome: <span class="accent-ink">"Ana"</span> });<br>
       <span class="comment">→ cookie vai automaticamente no header!</span>
     </div>
-    <p class="body-text" style="margin-top: 1.5em;"><strong>Domínios diferentes (porta 8080)</strong> — precisa liberar CORS E falar ao Axios:</p>
+    <p class="body-text"><strong>Domínios diferentes (porta 8080)</strong> — precisa liberar CORS E falar ao Axios:</p>
     <div class="tree" style="font-size: 1em;">
-      <span class="comment">// Frontend em localhost:5173</span><br>
       <span class="comment">// Requisição pra localhost:8080 (porta diferente!)</span><br>
       axios.<span class="hl">post</span>(<span class="accent-ink">"http://localhost:8080/usuarios"</span>, { nome: <span class="accent-ink">"Ana"</span> }, {<br>
       &nbsp;&nbsp;withCredentials: <span class="hl">true</span>  <span class="comment">← permite enviar cookie mesmo com CORS</span><br>
-      });<br><br>
+      });<br>
       <span class="comment">Backend precisa responder com:</span><br>
       Access-Control-Allow-Origin: http://localhost:5173<br>
       Access-Control-Allow-Credentials: true
@@ -208,14 +212,14 @@
         <div class="term-line">  <span class="hl">userId: 42</span></div>
         <div class="term-line">};</div>
         <div class="term-line"></div>
-        <div class="term-line comment">// expiresIn coloca automaticamente a data de expiração</span>
+        <div class="term-line comment">// expiresIn coloca automaticamente a data de expiração</div>
         <div class="term-line">const token = jwt.<span class="hl">sign</span>(payload, process.env.JWT_SECRET, {</div>
         <div class="term-line">  <span class="hl">expiresIn: "10m"  </span><span class="comment">// expira em 10 min</span></div>
         <div class="term-line">});</div>
       </div>
     </div>
-    <p class="body-text" style="margin-top: 1.5em;">Decodificando este token em <strong>jwt.io</strong> (qualquer um consegue):</p>
-    <div class="tree" style="background: #0d1a16; border: 1px solid #0a1613; padding: 12px 14px; font-size: 0.95em;">
+    <p class="body-text" style="margin-top: 1.5em; color: #1b231e !important; font-weight: 600; font-size: 1.5rem;">Decodificando este token em <strong>jwt.io</strong> (qualquer um consegue):</p>
+    <div class="tree" style="background: #0d1a16; border: 1px solid #0a1613; padding: 12px 14px; font-size: 0.95em; overflow-x: auto; max-width: 100%; line-height: 1.3; color: #e9efe9;">
       {<br>
       &nbsp;&nbsp;<span class="accent-ink">"userId"</span>: 42,<br>
       &nbsp;&nbsp;<span class="accent-ink">"iat"</span>: 1731000000,<br>
@@ -379,9 +383,9 @@
   <section class="slide" data-eyebrow="trabalho final">
     <h2>Trabalho Final 04</h2>
     <p class="lede">Implementar UPDATE e DELETE no gerenciador de tarefas.</p>
-    <p class="body-text" style="margin-top: 2em; font-size: 1.1em;"><strong>📝 Acesse:</strong></p>
+    <p class="body-text" style="margin-top: 2em; font-size: 1.1em;"><strong>📝&nbsp;Acesse:</strong></p>
     <p class="body-text"><a href="https://docs.google.com/forms/d/e/1FAIpQLSfQYQpk55_9VKsyME84-QnLjedeBv_KXPD5RHBAZPxwnPnRjQ/viewform?usp=publish-editor" target="_blank" style="color: #4a9eff; text-decoration: underline;">https://docs.google.com/forms/d/e/1FAIpQLSfQYQpk55_9VKsyME84-QnLjedeBv_KXPD5RHBAZPxwnPnRjQ/viewform?usp=publish-editor</a></p>
-    <p class="body-text" style="margin-top: 2em;"><strong>⏰ Prazo:</strong> 21/09/2026T23:59:59</p>
+    <p class="body-text" style="margin-top: 2em;"><strong>⏰&nbsp;Prazo:</strong> 21/09/2026T23:59:59</p>
   </section>
 
   <section class="slide" data-eyebrow="fim da aula 04">
@@ -397,11 +401,12 @@
     <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
     <div class="hud-meta">
       <span><span id="counterCurrent">01</span> / <span id="counterTotal">23</span> — <span id="eyebrowLabel">abertura</span></span>
-      <span class="hint">use ← → ou espaço</span>
+      <span class="hint">use ← → ou espaço para navegar · T alterna o tema</span>
     </div>
   </div>
   <button id="nextBtn" aria-label="Próximo slide">›</button>
 </nav>
-<script src="js/slide.js"></script>
+<script src="../../../assets/slide.js"></script>
+<script src="../../../assets/slide-16x9.js"></script>
 </body>
 </html>
